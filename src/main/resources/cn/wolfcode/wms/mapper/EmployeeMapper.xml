@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.wolfcode.wms.mapper.EmployeeMapper">
+
+
+    <resultMap id="BaseResultMap" type="Employee">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="password" property="password"/>
+        <result column="email" property="email"/>
+        <result column="age" property="age"/>
+        <result column="admin" property="admin"/>
+
+        <association property="dept" javaType="Department">
+            <id column="d_id" property="id"/>
+            <result column="d_name" property="name"/>
+        </association>
+
+        <collection property="roles" column="id"
+                    select="cn.wolfcode.wms.mapper.RoleMapper.selectByEmployeeId"/>
+
+    </resultMap>
+
+
+    <delete id="deleteByPrimaryKey">
+        DELETE FROM employee
+        WHERE id = #{id}
+    </delete>
+
+
+    <delete id="deleteRelation">
+        DELETE FROM employee_role
+        WHERE employee_id = #{id}
+    </delete>
+
+
+    <delete id="batchDelete">
+        delete from employee where id in
+        <foreach collection="array" open="(" item="ele" separator="," close=")">
+            #{ele}
+        </foreach>
+    </delete>
+
+
+    <insert id="insert" keyProperty="id" useGeneratedKeys="true">
+        INSERT INTO employee (name, password, email, age, admin, dept_id)
+        VALUES (#{name}, #{password}, #{email}, #{age}, #{admin}, #{dept.id})
+    </insert>
+
+
+    <insert id="insertRelation">
+        INSERT INTO employee_role (employee_id, role_id)
+        VALUES (#{employeeId}, #{roleId})
+    </insert>
+
+
+    <update id="updateByPrimaryKey">
+        UPDATE employee
+        SET name    = #{name},
+            email   = #{email},
+            age     = #{age},
+            admin   = #{admin},
+            dept_id = #{dept.id}
+        WHERE id = #{id}
+    </update>
+
+
+    <select id="selectByPrimaryKey" resultMap="BaseResultMap">
+        <include refid="base_colunm"/>
+        <include refid="base_table"/>
+        where e.id = #{id}
+    </select>
+
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        <include refid="base_colunm"/>
+        <include refid="base_table"/>
+
+    </select>
+    <select id="query4List" resultMap="BaseResultMap">
+        <include refid="base_colunm"/>
+        <include refid="base_table"/>
+        <include refid="base_where"/>
+        limit #{start},#{pageSize}
+    </select>
+
+    <!--查询账号密码-->
+    <select id="selectEmployeeByInfo" resultType="Employee">
+        SELECT
+            id,
+            name,
+            admin
+        FROM employee
+        WHERE name = #{username} AND password = #{password}
+    </select>
+
+
+    <select id="query4Count" resultType="int">
+        select count(e.id)
+        <include refid="base_table"/>
+        <include refid="base_where"/>
+    </select>
+
+
+    <sql id="base_colunm">
+        SELECT
+            e.id,
+            e.name,
+            e.password,
+            e.email,
+            e.age,
+            e.admin,
+            d.id   d_id,
+            d.name d_name
+    </sql>
+
+
+    <sql id="base_table">
+        from employee e left join department d on e.dept_id = d.id
+    </sql>
+
+    <!--高级查询,关键字查询-->
+    <sql id="base_where">
+        <where>
+            <if test="keyword != null">
+                and (e.name like concat('%',#{keyword},'%') or e.email like concat('%',#{keyword},'%'))
+            </if>
+            <if test="deptId > 0">
+                and e.dept_id = #{deptId}
+            </if>
+        </where>
+    </sql>
+
+
+</mapper>

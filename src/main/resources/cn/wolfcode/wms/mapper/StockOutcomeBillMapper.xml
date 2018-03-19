@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.wolfcode.wms.mapper.StockOutcomeBillMapper">
+    <resultMap id="BaseResultMap" type="cn.wolfcode.wms.domain.StockOutcomeBill">
+        <id column="id" property="id"/>
+        <result column="sn" property="sn"/>
+        <result column="vdate" property="vdate"/>
+        <result column="status" property="status"/>
+        <result column="totalAmount" property="totalAmount"/>
+        <result column="totalNumber" property="totalNumber"/>
+        <result column="auditTime" property="auditTime"/>
+        <result column="inputTime" property="inputTime"/>
+        <association property="inputUser" javaType="Employee" columnPrefix="inputUser_">
+            <id column="id" property="id"/>
+            <result column="name" property="name"/>
+        </association>
+        <association property="auditor" javaType="Employee" columnPrefix="auditor_">
+            <id column="id" property="id"/>
+            <result column="name" property="name"/>
+        </association>
+        <association property="depot" javaType="Depot" columnPrefix="depot_">
+            <id column="id" property="id"/>
+            <result column="name" property="name"/>
+        </association>
+        <association property="client" javaType="Client" columnPrefix="client_">
+            <id column="id" property="id"/>
+            <result column="name" property="name"/>
+        </association>
+        <!--额外sql查询-->
+        <collection property="items" ofType="StockOutcomeBillItem"
+                    select="cn.wolfcode.wms.mapper.StockOutcomeBillItemMapper.selectByBillId" column="id"/>
+
+    </resultMap>
+    <delete id="deleteByPrimaryKey">
+        DELETE FROM stockOutcomeBill
+        WHERE id = #{id}
+    </delete>
+
+
+    <insert id="insert" keyProperty="id" useGeneratedKeys="true">
+        INSERT INTO stockOutcomeBill (sn, vdate, status, totalAmount, totalNumber, auditTime,
+                                      inputTime, inputUser_id, auditor_id, depot_id, client_id)
+        VALUES (#{sn}, #{vdate}, #{status}, #{totalAmount}, #{totalNumber}, #{auditTime},
+                       #{inputTime}, #{inputUser.id}, #{auditor.id}, #{depot.id}, #{client.id})
+    </insert>
+
+
+    <update id="updateByPrimaryKey">
+        UPDATE stockOutcomeBill
+        SET sn          = #{sn},
+            vdate       = #{vdate},
+            totalAmount = #{totalAmount},
+            totalNumber = #{totalNumber},
+            depot_id    = #{depot.id},
+            client_id   = #{client.id}
+        WHERE id = #{id}
+    </update>
+
+
+    <update id="audit" parameterType="stockOutcomeBill">
+        UPDATE stockOutcomeBill
+        SET status = #{status}, auditor_id = #{auditor.id}, auditTime = #{auditTime}
+        WHERE id = #{id}
+    </update>
+
+
+    <select id="selectByPrimaryKey" resultMap="BaseResultMap">
+        SELECT
+            bill.id,
+            bill.sn,
+            bill.vdate,
+            bill.STATUS,
+            bill.totalAmount,
+            bill.totalNumber,
+            bill.auditTime,
+            bill.inputTime,
+            inputUser.id   inputUser_id,
+            inputUser.name inputUser_name,
+            auditor.id     auditor_id,
+            auditor.name   auditor_name,
+            depot.id       depot_id,
+            depot.name     depot_name,
+            c.id           client_id,
+            c.name         client_name
+        FROM stockOutcomeBill bill
+            JOIN employee inputUser ON inputUser.id = bill.inputUser_id
+            LEFT JOIN employee auditor ON auditor.id = bill.auditor_id
+            JOIN depot depot ON depot.id = bill.depot_id
+            JOIN client c ON c.id = bill.client_id
+        WHERE bill.id = #{id}
+    </select>
+
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT
+            id,
+            sn,
+            vdate,
+            status,
+            totalAmount,
+            totalNumber,
+            auditTime,
+            inputTime,
+            inputUser_id,
+            auditor_id,
+            depot_id
+        FROM stockOutcomeBill
+    </select>
+
+    <select id="query4List" resultMap="BaseResultMap">
+        SELECT
+        bill.id,
+        bill.sn,
+        bill.vdate,
+        bill.STATUS,
+        bill.totalAmount,
+        bill.totalNumber,
+        bill.auditTime,
+        bill.inputTime,
+        inputUser.id inputUser_id,
+        inputUser.name inputUser_name,
+        auditor.id auditor_id,
+        auditor.name auditor_name,
+        depot.id depot_id,
+        depot.name depot_name,
+        c.id client_id,
+        c.name client_name
+        FROM stockOutcomeBill bill
+        JOIN employee inputUser ON inputUser.id = bill.inputUser_id
+        LEFT JOIN employee auditor ON auditor.id = bill.auditor_id
+        JOIN depot depot ON depot.id = bill.depot_id
+        JOIN client c ON c.id = bill.client_id
+        <include refid="where_sql"/>
+        LIMIT #{start}, #{pageSize}
+    </select>
+
+
+    <select id="query4Count" resultType="int">
+        SELECT count(bill.id)
+        FROM
+        stockOutcomeBill bill
+        JOIN employee inputUser ON inputUser.id = bill.inputUser_id
+        LEFT JOIN employee auditor ON auditor.id = bill.auditor_id
+        JOIN depot depot ON depot.id = bill.depot_id
+        JOIN client c ON c.id = bill.client_id
+        <include refid="where_sql"/>
+    </select>
+
+    <!--高级查询,关键字查询-->
+    <sql id="where_sql">
+        <if test="beginDate != null ">
+            and bill.vdate &gt;= #{beginDate}
+        </if>
+        <if test="endDate != null ">
+            and bill.vdate &lt;= #{endDate}
+        </if>
+        <if test="depotId > 0 ">
+            and bill.depot_id = #{depotId}
+        </if>
+        <if test="clientId > 0">
+            and bill.client_id = #{clientId}
+        </if>
+        <if test="status >= 0">
+            and bill.status = #{status}
+        </if>
+    </sql>
+
+</mapper>

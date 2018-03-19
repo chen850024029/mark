@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.wolfcode.wms.mapper.OrderBillMapper">
+    <resultMap id="BaseResultMap" type="cn.wolfcode.wms.domain.OrderBill">
+        <id column="id" property="id"/>
+        <result column="sn" property="sn"/>
+        <result column="vdate" property="vdate"/>
+        <result column="status" property="status"/>
+        <result column="totalAmount" property="totalAmount"/>
+        <result column="totalNumber" property="totalNumber"/>
+        <result column="auditTime" property="auditTime"/>
+        <result column="inputTime" property="inputTime"/>
+        <association property="inputUser" javaType="Employee" columnPrefix="inputUser_">
+            <id column="id" property="id"/>
+            <result column="name" property="name"/>
+        </association>
+        <association property="auditor" javaType="Employee" columnPrefix="auditor_">
+            <id column="id" property="id"/>
+            <result column="name" property="name"/>
+        </association>
+        <association property="supplier" javaType="Supplier" columnPrefix="supplier_">
+            <id column="id" property="id"/>
+            <result column="name" property="name"/>
+        </association>
+        <!--额外sql查询-->
+        <collection property="items" ofType="OrderBillItem"
+                    select="cn.wolfcode.wms.mapper.OrderBillItemMapper.selectByBillId" column="id"/>
+
+    </resultMap>
+    <delete id="deleteByPrimaryKey">
+        DELETE FROM orderbill
+        WHERE id = #{id}
+    </delete>
+
+
+    <insert id="insert" keyProperty="id" useGeneratedKeys="true">
+        INSERT INTO orderbill (sn, vdate, status, totalAmount, totalNumber, auditTime,
+                               inputTime, inputUser_id, auditor_id, supplier_id)
+        VALUES (#{sn}, #{vdate}, #{status}, #{totalAmount}, #{totalNumber}, #{auditTime},
+                #{inputTime}, #{inputUser.id}, #{auditor.id}, #{supplier.id})
+    </insert>
+
+
+    <update id="updateByPrimaryKey">
+        UPDATE orderbill
+        SET sn           = #{sn},
+            vdate        = #{vdate},
+            totalAmount  = #{totalAmount},
+            totalNumber  = #{totalNumber},
+            supplier_id  = #{supplier.id}
+        WHERE id = #{id}
+    </update>
+
+
+    <update id="audit" parameterType="orderBill">
+        UPDATE orderbill
+        SET status = #{status}, auditor_id = #{auditor.id}, auditTime = #{auditTime}
+        WHERE id = #{id}
+    </update>
+
+
+    <select id="selectByPrimaryKey" resultMap="BaseResultMap">
+        SELECT
+            ob.id,
+            ob.sn,
+            ob.vdate,
+            ob.STATUS,
+            ob.totalAmount,
+            ob.totalNumber,
+            ob.auditTime,
+            ob.inputTime,
+            inputUser.id   inputUser_id,
+            inputUser.name inputUser_name,
+            auditor.id     auditor_id,
+            auditor.name   auditor_name,
+            supplier.id    supplier_id,
+            supplier.name  supplier_name
+        FROM orderbill ob
+            JOIN employee inputUser ON inputUser.id = ob.inputUser_id
+            LEFT JOIN employee auditor ON auditor.id = ob.auditor_id
+            JOIN supplier supplier ON supplier.id = ob.supplier_id
+        WHERE ob.id = #{id}
+    </select>
+
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT
+            id,
+            sn,
+            vdate,
+            status,
+            totalAmount,
+            totalNumber,
+            auditTime,
+            inputTime,
+            inputUser_id,
+            auditor_id,
+            supplier_id
+        FROM orderbill
+    </select>
+
+    <select id="query4List" resultMap="BaseResultMap">
+        SELECT
+            ob.id,
+            ob.sn,
+            ob.vdate,
+            ob.STATUS,
+            ob.totalAmount,
+            ob.totalNumber,
+            ob.auditTime,
+            ob.inputTime,
+            inputUser.id   inputUser_id,
+            inputUser.name inputUser_name,
+            auditor.id     auditor_id,
+            auditor.name   auditor_name,
+            supplier.id    supplier_id,
+            supplier.name  supplier_name
+        FROM orderbill ob
+            JOIN employee inputUser ON inputUser.id = ob.inputUser_id
+            LEFT JOIN employee auditor ON auditor.id = ob.auditor_id
+            JOIN supplier supplier ON supplier.id = ob.supplier_id
+            <include refid="where_sql"/>
+        LIMIT #{start}, #{pageSize}
+    </select>
+
+
+    <select id="query4Count" resultType="int">
+        SELECT count(ob.id)
+        FROM
+            orderbill ob
+            JOIN employee inputUser ON inputUser.id = ob.inputUser_id
+            LEFT JOIN employee auditor ON auditor.id = ob.auditor_id
+            JOIN supplier supplier ON supplier.id = ob.supplier_id
+          <include refid="where_sql"/>
+    </select>
+
+    <!--高级查询,关键字查询-->
+    <sql id="where_sql">
+        <if test="beginDate != null ">
+            and ob.vdate &gt;= #{beginDate}
+        </if>
+        <if test="endDate != null ">
+            and ob.vdate &lt;= #{endDate}
+        </if>
+        <if test="supplierId > 0 ">
+            and ob.supplier_id = #{supplierId}
+        </if>
+        <if test="status >= 0">
+            and ob.status = #{status}
+        </if>
+    </sql>
+
+</mapper>

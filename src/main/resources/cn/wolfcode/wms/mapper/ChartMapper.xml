@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.wolfcode.wms.mapper.ChartMapper">
+
+    <resultMap id="BaseResultMap" type="cn.wolfcode.wms.domain.Brand">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="sn" property="sn"/>
+    </resultMap>
+
+    <select id="orderChart" resultType="map">
+        SELECT
+        ${groupByType} groupByType,
+        sum(item.number) totalNumber,
+        sum(item.amount) totalAmount
+        FROM orderbillitem item
+        JOIN orderbill bill ON bill.id = item.bill_id
+        JOIN employee inputUser ON inputUser.id = bill.inputUser_id
+        JOIN product p ON item.product_id = p.id
+        JOIN supplier s ON s.id = bill.supplier_id
+        WHERE bill.status = 1
+        <include refid="orderChart_sql"/>
+        GROUP BY ${groupByType}
+    </select>
+
+    <sql id="orderChart_sql">
+        <if test="beginDate != null ">
+            and bill.vdate &gt;= #{beginDate}
+        </if>
+        <if test="endDate != null ">
+            and bill.vdate &lt;= #{endDate}
+        </if>
+        <if test="keyword != null ">
+            and (p.name like concat('%',#{keyword},'%') or p.sn like concat('%',#{keyword},'%'))
+        </if>
+        <if test="supplierId > 0">
+            and s.id = #{supplierId}
+        </if>
+        <if test="brandId > 0">
+            and p.brand_id = #{brandId}
+        </if>
+    </sql>
+
+    <select id="selectSaleChart" resultType="map">
+        SELECT
+        ${groupByType} groupByType,
+        sum(sa.number) totalNumber,
+        sum(sa.saleAmount) totalAmount,
+        sum(sa.saleAmount-sa.costAmount) profit
+        FROM saleaccount sa
+        JOIN employee saleman on sa.saleman_id = saleman.id
+        JOIN product p on p.id = sa.product_id
+        join client c on c.id = sa.client_id
+        <include refid="salePrice_sql"/>
+        GROUP BY ${groupByType}
+    </select>
+
+    <sql id="salePrice_sql">
+        <where>
+            <if test="beginDate != null ">
+                and sa.vdate &gt;= #{beginDate}
+            </if>
+            <if test="endDate != null ">
+                and sa.vdate &lt;= #{endDate}
+            </if>
+            <if test="keyword != null ">
+                and (p.name like concat('%',#{keyword},'%') or p.sn like concat('%',#{keyword},'%'))
+            </if>
+            <if test="clientId > 0">
+                and c.id = #{clientId}
+            </if>
+            <if test="brandId > 0">
+                and p.brand_id = #{brandId}
+            </if>
+        </where>
+    </sql>
+
+
+</mapper>
